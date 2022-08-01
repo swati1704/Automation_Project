@@ -46,13 +46,29 @@ cd /var/log/apache2
 cd /tmp
 aws s3 cp ${TARFILENAME}.gz s3://${S3BUCKETNAME}/
 
+#prepare  file entry data for inventory.html
+bytes=ls -lh ${TARFILENAME}.gz | awk '{print  $5}'
+sizedata = $(( bytes / 1024 ))
+fileEntry="httpd-log     ${timestamp}     tar     ${sizedata}"
 
 #remove the tar file from ec2 onec copied to s3
 rm ${TARFILENAME}.gz
 
+#create and append bookeeping logs to inventory.html
 
+cd /var/www/html
+#check if file exists, if not create inventory.html with headers
+if [ ! -e inventory.html ] ; then
+    echo "Log Type         Time Created         Type        Size" >> inventory.html
+fi
+echo $fileEntry >> inventory.html
 
+#create a cron job
 
-
-
- 
+cd /etc/cron.d
+#if cron job flie does not exist, create and configure
+if [ ! -e automation ] ; then
+    echo "SHELL=/bin/bash" > automation
+    echo "PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin" >> automation
+    echo "0 13 * * * root /root/Automation_Project/automation.sh" >> automation
+fi
